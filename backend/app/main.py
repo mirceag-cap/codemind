@@ -6,13 +6,15 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from app.core.config import settings
 from app.api.health import router as health_router
+from app.graph.graph import get_graph
 
 
 # lifespan handles startup and shutdown logic cleanly
 # anything before `yield` runs on startup, after yield runs on shutdown
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    # startup
+    # startup — compile the graph singleton once so it's ready for requests
+    get_graph()
     print(f"🚀 {settings.app_name} starting up...")
     yield
     # shutdown
