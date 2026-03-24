@@ -6,6 +6,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from app.core.config import settings
 from app.api.health import router as health_router
+from app.api.repos import router as repos_router
 
 
 # lifespan handles startup and shutdown logic cleanly
@@ -38,3 +39,4 @@ app.add_middleware(
 
 # Mount routers — each router owns its own URL prefix
 app.include_router(health_router, prefix="/api/v1", tags=["health"])
+app.include_router(repos_router, prefix="/api/v1", tags=["repos"])
