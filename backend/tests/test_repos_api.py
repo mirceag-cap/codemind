@@ -35,9 +35,17 @@ def _make_mock_client(repo_names: list[str]) -> MagicMock:
 
 
 def _override(repo_names: list[str]) -> None:
-    """Override the weaviate_client dependency with a mock."""
+    """Override the weaviate_client dependency with a mock generator.
+
+    Using a generator (yield) mirrors the real dependency's lifecycle so that
+    teardown paths are exercised the same way FastAPI would run them.
+    """
     mock_client = _make_mock_client(repo_names)
-    app.dependency_overrides[weaviate_client] = lambda: mock_client
+
+    def _mock_dep():
+        yield mock_client
+
+    app.dependency_overrides[weaviate_client] = _mock_dep
 
 
 def test_list_repos_returns_200():

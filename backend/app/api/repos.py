@@ -16,14 +16,12 @@ router = APIRouter()
 
 
 def weaviate_client() -> Iterator[weaviate.WeaviateClient]:
-    """FastAPI dependency that opens and closes a Weaviate connection per request.
-
-    weaviate.WeaviateClient supports the context manager protocol
-    (__enter__/__exit__) as of weaviate-client v4, which is the version
-    pinned in pyproject.toml (>=4.6.0).
-    """
-    with get_client() as client:
+    """FastAPI dependency that opens and closes a Weaviate connection per request."""
+    client = get_client()
+    try:
         yield client
+    finally:
+        client.close()
 
 
 # ── Endpoint ───────────────────────────────────────────────────────────────────
@@ -41,7 +39,6 @@ async def list_repos(
 
     response = collection.aggregate.over_all(
         group_by=wvc.aggregate.GroupByAggregate(prop="repo_name"),
-        total_count=True,
     )
 
     repos = [group.grouped_by.value for group in response.groups]
