@@ -1,5 +1,7 @@
 # GET /api/v1/repos — returns distinct repo names currently in Weaviate
 
+from collections.abc import Iterator
+
 import weaviate
 import weaviate.classes as wvc
 
@@ -13,8 +15,13 @@ router = APIRouter()
 # ── Dependency ─────────────────────────────────────────────────────────────────
 
 
-def weaviate_client() -> weaviate.WeaviateClient:
-    """FastAPI dependency that opens and closes a Weaviate connection per request."""
+def weaviate_client() -> Iterator[weaviate.WeaviateClient]:
+    """FastAPI dependency that opens and closes a Weaviate connection per request.
+
+    weaviate.WeaviateClient supports the context manager protocol
+    (__enter__/__exit__) as of weaviate-client v4, which is the version
+    pinned in pyproject.toml (>=4.6.0).
+    """
     with get_client() as client:
         yield client
 
