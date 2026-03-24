@@ -1,6 +1,6 @@
 # Tests for Graph State & Skeleton (Issue #2)
 
-import pytest
+from typing import get_type_hints
 from langchain_core.messages import HumanMessage, AIMessage
 from langgraph.graph.message import add_messages
 
@@ -12,9 +12,10 @@ from app.graph.graph import get_graph
 
 
 def test_graph_state_fields_exist():
-    """GraphState has the required keys."""
+    """GraphState has (at least) the four required fields."""
     required = {"messages", "repo_name", "retrieved_chunks", "route"}
-    assert required == set(GraphState.__annotations__.keys())
+    # Use issubset so adding fields in future tickets doesn't break this test
+    assert required.issubset(set(get_type_hints(GraphState).keys()))
 
 
 def test_add_messages_appends():
@@ -49,13 +50,16 @@ def test_get_graph_returns_singleton():
 
 
 def test_graph_invoke_without_error():
-    """Graph can be invoked with minimal input and returns without raising."""
+    """Graph can be invoked with only the required fields and returns without raising.
+
+    retrieved_chunks and route are NotRequired — they are absent on the first
+    turn and populated later by agent nodes, so omitting them here is valid.
+    """
     graph = get_graph()
-    config = {"configurable": {"thread_id": "test-thread"}}
+    config = {"configurable": {"thread_id": "test-thread-invoke"}}
     result = graph.invoke(
         {"messages": [HumanMessage(content="hello")], "repo_name": "test"},
         config=config,
     )
-    # messages should still be present after invocation
     assert "messages" in result
     assert len(result["messages"]) >= 1

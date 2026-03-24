@@ -5,9 +5,6 @@ from langgraph.checkpoint.memory import MemorySaver
 
 from app.graph.state import GraphState
 
-# Module-level singleton — compiled once at import time
-_graph = None
-
 
 def _build_graph():
     """Build and compile the StateGraph with a MemorySaver checkpointer."""
@@ -25,9 +22,10 @@ def _build_graph():
     return builder.compile(checkpointer=checkpointer)
 
 
+# Compiled once at module import time — no lazy initialisation needed
+_graph = _build_graph()
+
+
 def get_graph():
-    """Return the compiled graph singleton, initialising it on first call."""
-    global _graph
-    if _graph is None:
-        _graph = _build_graph()
+    """Return the compiled graph singleton."""
     return _graph
