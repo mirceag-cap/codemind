@@ -1,7 +1,6 @@
 # Integration tests for GET /api/v1/repos (Issue #3)
 
 from unittest.mock import MagicMock
-import pytest
 from fastapi.testclient import TestClient
 
 from app.main import app
@@ -10,7 +9,6 @@ from app.api.repos import weaviate_client
 
 def _make_mock_client(repo_names: list[str]) -> MagicMock:
     """Build a mock Weaviate client that returns the given repo names."""
-    # Build group objects matching the shape returned by aggregate.over_all
     groups = []
     for name in repo_names:
         group = MagicMock()
@@ -28,22 +26,16 @@ def _make_mock_client(repo_names: list[str]) -> MagicMock:
     return client
 
 
-@pytest.fixture
-def client_with_repos(request):
-    """Return a TestClient with the Weaviate dependency overridden."""
-    repo_names = request.param if hasattr(request, "param") else ["repo-a", "repo-b"]
+def _override(repo_names: list[str]) -> MagicMock:
+    """Override the weaviate_client dependency with a mock and return the client."""
     mock_client = _make_mock_client(repo_names)
-
     app.dependency_overrides[weaviate_client] = lambda: mock_client
-    with TestClient(app) as c:
-        yield c, repo_names
-    app.dependency_overrides.clear()
+    return mock_client
 
 
 def test_list_repos_returns_200():
     """GET /api/v1/repos returns HTTP 200."""
-    mock_client = _make_mock_client(["myrepo"])
-    app.dependency_overrides[weaviate_client] = lambda: mock_client
+    _override(["myrepo"])
     try:
         with TestClient(app) as c:
             response = c.get("/api/v1/repos")
@@ -53,15 +45,14 @@ def test_list_repos_returns_200():
 
 
 def test_list_repos_returns_expected_list():
-    """GET /api/v1/repos returns distinct repo names from Weaviate."""
+    """GET /api/v1/repos returns distinct repo names from Weaviate with exact schema."""
     repos = ["myrepo", "otherrepo"]
-    mock_client = _make_mock_client(repos)
-    app.dependency_overrides[weaviate_client] = lambda: mock_client
+    _override(repos)
     try:
         with TestClient(app) as c:
             response = c.get("/api/v1/repos")
         data = response.json()
-        assert "repos" in data
+        assert set(data.keys()) == {"repos"}
         assert sorted(data["repos"]) == sorted(repos)
     finally:
         app.dependency_overrides.clear()
@@ -69,8 +60,7 @@ def test_list_repos_returns_expected_list():
 
 def test_list_repos_empty_when_no_data():
     """GET /api/v1/repos returns an empty list when Weaviate has no repos."""
-    mock_client = _make_mock_client([])
-    app.dependency_overrides[weaviate_client] = lambda: mock_client
+    _override([])
     try:
         with TestClient(app) as c:
             response = c.get("/api/v1/repos")
@@ -80,16 +70,15 @@ def test_list_repos_empty_when_no_data():
         app.dependency_overrides.clear()
 
 
-def test_list_repos_cors_header_present():
-    """Response includes CORS header for the frontend dev server origin."""
-    mock_client = _make_mock_client(["repo"])
-    app.dependency_overrides[weaviate_client] = lambda: mock_client
+def test_list_repos_cors_header_for_frontend_origin():
+    """CORS allows the frontend dev server origin (http://localhost:5173)."""
+    _override(["repo"])
     try:
         with TestClient(app) as c:
             response = c.get(
                 "/api/v1/repos",
                 headers={"Origin": "http://localhost:5173"},
             )
-        assert "access-control-allow-origin" in response.headers
+        assert response.headers.get("access-control-allow-origin") == "http://localhost:5173"
     finally:
         app.dependency_overrides.clear()

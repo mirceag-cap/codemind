@@ -1,6 +1,5 @@
 # GET /api/v1/repos — returns distinct repo names currently in Weaviate
 
-from typing import Generator
 import weaviate
 import weaviate.classes as wvc
 
@@ -14,7 +13,7 @@ router = APIRouter()
 # ── Dependency ─────────────────────────────────────────────────────────────────
 
 
-def weaviate_client() -> Generator[weaviate.WeaviateClient, None, None]:
+def weaviate_client() -> weaviate.WeaviateClient:
     """FastAPI dependency that opens and closes a Weaviate connection per request."""
     with get_client() as client:
         yield client
