@@ -1,0 +1,15 @@
+# Python
+__pycache__/
+*.pyc
+*.egg-info/
+.venv/
+
+# Environment
+.env
+
+# Node
+node_modules/
+dist/
+
+# Vector DB local data
+weaviate_data/
